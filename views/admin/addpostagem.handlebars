@@ -1,7 +1,15 @@
+{{#each erros}}
+    <div class="alert alert-danger">
+        <h6>Não é possível criar postagem sem categoria!</h6>
+    </div>
+{{else}}
+
+
+{{/each}}
 <div class="card">
     <div class="card-body">
         <h4>Nova postagem: </h4>
-        <form action="/admin/postagens/add" method="POST">
+        <form action="/admin/postagens/nova" method="POST">
 
             <label for="titulo">Título: </label>
             <input type="text" name="titulo" class="form-control">

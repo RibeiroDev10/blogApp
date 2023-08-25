@@ -7,6 +7,9 @@ const router = express.Router();
     // Passando uma referência do Model para uma variável
         const Categoria = mongoose.model('categorias');
 
+require('../models/Postagem');
+const Postagem = mongoose.model('postagens');
+ 
 router.get('/', (req, res) => {
     res.render('admin/index');
 });
@@ -103,40 +106,73 @@ router.get('/categorias/add', (req, res) => {
     });
 
 /* DELETAR CATEGORIA */
-router.post('/categorias/deletar', (req, res) => {
-    Categoria.deleteOne({_id: req.body.id})
-            .then(() => {
-                req.flash("success_msg", "Categoria deletada com sucesso!");
-                res.redirect('/admin/categorias');
-            })
-            .catch((error) => {
-                req.flash("error_msg", "Erro ao deletar categoria: " + error);
-                res.redirect('/admin/categorias');
-            });
-});
-
-/* ROTAS DE POSTAGENS */
-router.get('/postagens', (req, res) => {
-    res.render('admin/postagens');
-});
-
-/* ADICIONANDO NOVA POSTAGEM */
-router.get('/postagens/add', (req, res) => {
-
-    /* Passa todas as categorias que existe no banco de dados
-    para a nossa view de postagens (nova postagem) */
-        Categoria.find()
-                .then((categorias) => {
-                    res.render('admin/addpostagem', {categorias: categorias});
+    router.post('/categorias/deletar', (req, res) => {
+        Categoria.deleteOne({_id: req.body.id})
+                .then(() => {
+                    req.flash("success_msg", "Categoria deletada com sucesso!");
+                    res.redirect('/admin/categorias');
                 })
                 .catch((error) => {
-                    req.flash("error_msg", "Erro ao criar categoria: " + error);
-                    res.rendirect('/admin/postagens');
+                    req.flash("error_msg", "Erro ao deletar categoria: " + error);
+                    res.redirect('/admin/categorias');
                 });
-});
+    });
 
+/* ROTAS DE POSTAGENS */
+    router.get('/postagens', (req, res) => {
 
+        Postagem.find().populate("categoria")
+                       .sort({data: "desc"})
+                       .then((postagens) => {
+                        res.render('admin/postagens', {postagens: postagens});;
+                       });
+    });
 
+/* ADICIONANDO NOVA POSTAGEM */
+    router.get('/postagens/add', (req, res) => {
+
+        /* Passa todas as categorias que existe no banco de dados
+        para a nossa view de postagens (nova postagem) */
+            Categoria.find()
+                    .then((categorias) => {
+                        res.render('admin/addpostagem', {categorias: categorias});
+                    })
+                    .catch((error) => {
+                        req.flash("error_msg", "Erro ao criar categoria: " + error);
+                        res.rendirect('/admin/postagens');
+                    });
+    });
+
+/*  */
+    router.post('/postagens/nova', (req, res) => {
+        
+        var erros = [];
+
+        if(req.body.categoria == "0") {
+            erros.push({texto: "Categoria inválida, registre uma categoria!"});
+        } 
+        if(erros.length > 0) {
+            res.render('admin/addpostagem', {erros: erros});
+        } else {
+            const novaPostagem = {
+                titulo: req.body.titulo,
+                descricao: req.body.descricao,
+                conteudo: req.body.conteudo,
+                categoria: req.body.categoria,
+                slug: req.body.slug
+            };
+
+            new Postagem(novaPostagem).save()
+                                      .then(() => {
+                                        req.flash("success_msg", "Postagem criada com sucesso!");
+                                        res.redirect('/admin/postagens');
+                                      })
+                                      .catch((error) => {
+                                        req.flash("error_msg", "Houve um erro no salvamento da postagem!");
+                                        res.redirect('/admin/postagens');
+                                    })
+        }
+    });
 
 
 
