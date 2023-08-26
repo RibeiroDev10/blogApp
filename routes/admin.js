@@ -124,7 +124,7 @@ router.get('/categorias/add', (req, res) => {
         Postagem.find().populate("categoria")
                        .sort({data: "desc"})
                        .then((postagens) => {
-                        res.render('admin/postagens', {postagens: postagens});;
+                        res.render('admin/postagens', {postagens: postagens});
                        });
     });
 
@@ -139,11 +139,11 @@ router.get('/categorias/add', (req, res) => {
                     })
                     .catch((error) => {
                         req.flash("error_msg", "Erro ao criar categoria: " + error);
-                        res.rendirect('/admin/postagens');
+                        res.redirect('/admin/postagens');
                     });
     });
 
-/*  */
+/* ROTA QUE CRIA POSTAGENS */
     router.post('/postagens/nova', (req, res) => {
         
         var erros = [];
@@ -174,6 +174,52 @@ router.get('/categorias/add', (req, res) => {
         }
     });
 
+/* ROTA QUE EDITA POSTAGEM */
+    router.get('/postagens/edit/:id', (req, res) => {
 
+        Postagem.findOne({_id: req.params.id})
+                .then((postagens) => {
+                    Categoria.find()
+                             .then((categorias) => {
+                                res.render('admin/editpostagens', {categorias: categorias, postagens: postagens});
+                             })
+                             .catch((error) => {
+                                req.flash("error_msg", "Houve um erro ao listar as categorias: " + error);
+                                res.redirect('admin/postagens');
+                             });
+                })
+                .catch((error) => {
+                    req.flash("error_msg", "Houve um erro ao carregar o formulário de edição: " + error);
+                    res.redirect('/admin/postagens');
+                });
+    });
+
+/* ROTA DE ATUALIZAÇÃO DOS DADOS DE POSTAGEM */
+    router.post('/postagens/edit', (req, res) => {
+
+        /* Cadastrando os dados do formulário no banco de dados */
+            Postagem.findOne({_id: req.body.id})
+                    .then((postagens) => {
+                        postagens.titulo = req.body.titulo;
+                        postagens.slug = req.body.slug;
+                        postagens.descricao = req.body.descricao; 
+                        postagens.conteudo = req.body.conteudo; 
+                        postagens.categoria = req.body.categoria;
+
+                        postagens.save()
+                                 .then(() => {
+                                    req.flash("success_msg", "Sucesso ao salvar edição!");
+                                    res.redirect('/admin/postagens');
+                                 })
+                                 .catch((error) => {
+                                    req.flash("error_msg", "Houve um erro ao salvar edição no BD: " + error)
+                                    res.redirect('/admin/postagens'); 
+                                });
+                    })
+                    .catch((error) => {
+                        req.flash("error_msg", "Houve um erro ao salvar a edição: " + error);
+                        res.redirect('/admin/postagens');
+                    });
+    });
 
 module.exports = router;
