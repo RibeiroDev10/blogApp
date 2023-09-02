@@ -8,6 +8,13 @@
     const mongoose = require('mongoose');
     const session = require('express-session');
     const flash = require('connect-flash');
+    const usuarios = require("./routes/usuario"); 
+
+    /* Requires dos models */
+        require('./models/Postagem');
+        const Postagem = mongoose.model("postagens"); // Declarando o model depois do require abaixo
+        require('./models/Categoria');
+        const Categoria = mongoose.model("categorias");
 
 // Configurações
     // Sessão
@@ -58,8 +65,90 @@
         });
 
 // Rotas
-    app.use('/admin', admin);
+    /* Rota principal */
+        app.get('/', (req, res) => {
+            
+            Postagem.find()
+                    .lean()
+                    .populate("categoria")
+                    .sort({data: "desc"})
+                    .then((postagens) => {
+                        res.render("index", {postagens: postagens});
+                    })
+                    .catch((error) => {
+                        req.flash("error_msg", "Houve um erro intero -> " + error);
+                        res.redirect("/404");
+                    });
+        });
 
+    /* Rota de descrição (Leia mais...) */    
+    app.get("/postagem/:slug", (req, res) => {
+        Postagem.findOne({slug: req.params.slug})
+                .then((postagem) => {
+                    if(postagem) {
+                        res.render("postagem/index", {postagem: postagem});
+                    } else {
+                        req.flash("error_msg", "Essa postagem não existe!");
+                        res.redirect("/");
+                    };
+                })
+                .catch((error) => {
+                    req.flash("error_msg", "Houve um erro interno -> " + error);
+                    res.redirect("/");
+                });
+    })
+
+    /* Rota de listagem de categorais */
+        app.get('/categorias', (req, res) => {
+            Categoria.find()
+                     .then((categorias) => {
+                        res.render("categorias/index", {categorias: categorias});
+                     })
+                     .catch((error) => {
+                        req.flash("error_msg", "Houve um erro interno ao listar as categorias -> " + error);
+                        res.redirect("/");
+                    });
+        });
+
+    /*  */
+        app.get('/categorias/:slug', (req, res) => {
+            Categoria.findOne({slug: req.params.slug})
+                     .then((categoria) => {
+                        // se, achar, existir a categoria com base no SLUG passado como parâmetro...
+                        if(categoria) {
+                                        // procure no atributo "categoria" do Model "Postagem"
+                                        // se existe uma categoria com o mesmo ID 
+                                        // daquela mesma categoria achada com base no parâmetro SLUG.
+                            Postagem.find({categoria: categoria._id})
+                                    .then((postagens) => {
+                                        res.render("categorias/postagens", {postagens: postagens, categoria: categoria});
+                                    })
+                                    .catch((error) => {
+                                        req.flash("error_msg", "Houve um erro ao listar os posts -> " + error);
+                                        res.redirect("/");
+                                    });
+                        } else { // se não achar a categoria no Model "Postagem"...
+                            req.flash("error_msg", "Essa categoria não existe!");
+                            res.redirect('/');
+                        };
+                     })
+                     .catch((error) => {
+                        req.flash("error_msg", "Houve um erro interno ao carregar a página dessa categoria -> " + error);
+                        res.redirect('/');
+                     });
+        });
+
+    /* Rota erro 404 */    
+        app.get("/404", (req, res) => {
+            res.send("Erro 404!");
+        })
+
+    /* Rota admin */
+        app.use('/admin', admin);
+
+    /* Rota usuarios */
+        app.use("/usuarios", usuarios);
+    
 // Outros
 const PORT = 8081;
 app.listen(PORT, () => {
