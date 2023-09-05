@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 require("../models/Usuario");
 const Usuario = mongoose.model("usuarios");
 const bcrypt = require('bcryptjs');
+const passport = require('passport');
 
 /* Rotas */
     /* Registro de usuario */
@@ -52,7 +53,8 @@ const bcrypt = require('bcryptjs');
                             const novoUsuario = new Usuario({
                                 nome: req.body.nome,
                                 email: req.body.email,
-                                senha: req.body.senha
+                                senha: req.body.senha,
+                                eAdmin: 1
                             });
 
                             bcrypt.genSalt(10, (erro, salt) => {
@@ -90,6 +92,27 @@ const bcrypt = require('bcryptjs');
 /*  */
     router.get("/login", (req, res) => {
         res.render("usuarios/login");
+    });
+
+/* rota de autenticação de login */
+    router.post("/login", (req, res, next) => {
+
+        /* Essa será a função que irei utilizar sempre que quiser autenticar algo */
+            passport.authenticate("local", {
+
+                //caminho que irá redirecionar caso a autenticação seja feita com sucesso
+                    successRedirect: "/",
+                    failureRedirect: "/usuarios/login",
+                    failureFlash: true
+                    
+            })(req, res, next);
+    });    
+
+/* Rota de logout */
+    router.get("/logout", (req, res) => {
+        req.logout();
+        req.flash("success_msg", "Deslogado com sucesso!");
+        res.redirect("/");
     });
 
 module.exports = router;

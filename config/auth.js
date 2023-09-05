@@ -9,7 +9,7 @@
     const mongoose = require('mongoose');
 
 /* Carregar o bcrypt para comparar senhas HAS */
-    const bcrypt = require('bcrypt.js');
+    const bcrypt = require('bcrypt');
 
 /* Carregar model Usuário */
     require("../models/Usuario");
@@ -20,7 +20,7 @@
 /* Aqui configuraremos todo o nosso sistema de autenticação */
     module.exports = function(passport) {
 
-        passport.use(new localStrategy({usernameField: "email"}, (email, senha, done) => {
+        passport.use(new localStrategy({usernameField: "email", passwordField: "senha"}, (email, senha, done) => {
             
             /* Buscar o usuario que tem o e-mail igual o e-mail passado na autenticação */
                 Usuario.findOne( {email: email} )
@@ -40,7 +40,7 @@
                             bcrypt.compare(senha, usuario.senha, (erro, batem) => {
                                 
                                 if(batem) {
-                                    return done(null, user);
+                                    return done(null, usuario);
                                 } else {
                                     return done(null, false, {message: "Senha incorreta!"});
                                 }
@@ -48,10 +48,21 @@
                         })
         }));
 
-        /* Salvar os dados de um usuário na sessão */
+        /* Essas duas funções abaixo, servem para salvar os dados de um usuário na sessão */
             passport.serializeUser((usuario, done) => {
 
                 /* Passar os dados do usuário para uma sessão */
                     done(null, usuario.id);
+            });
+
+            passport.deserializeUser((id, done) => {
+
+                Usuario.findById(id)
+                        .then((usuario) => {
+                            done(null, usuario);
+                        })
+                        .catch((error) => {
+                            done(null, false, {message: "Algo deu errado ->" + error})
+                        }); 
             });
     }

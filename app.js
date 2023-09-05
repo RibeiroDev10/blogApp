@@ -9,12 +9,17 @@
     const session = require('express-session');
     const flash = require('connect-flash');
     const usuarios = require("./routes/usuario"); 
+    const passport = require("passport");
+    const bcrypt = require('bcrypt');
 
     /* Requires dos models */
         require('./models/Postagem');
         const Postagem = mongoose.model("postagens"); // Declarando o model depois do require abaixo
         require('./models/Categoria');
         const Categoria = mongoose.model("categorias");
+
+    /* Require do config AUTH */
+        require("./config/auth")(passport);
 
 // Configurações
     // Sessão
@@ -23,12 +28,21 @@
             resave: true,
             saveUninitialized: true
         }));
+
+        /* Sempre entre a inicialização da sessão e o flash, vamos chamar o passport.initialize() */
+            app.use(passport.initialize());
+            app.use(passport.session());
+
         app.use(flash());
 
     // Middleware
         app.use((req, res, next) => {
             res.locals.success_msg = req.flash("success_msg");
             res.locals.error_msg = req.flash("error_msg");
+            res.locals.error = req.flash("error");
+            // req.user = passport cria isso automaticamente para armazenar dados do usuario logado
+            // passamos o valor "null" caso não exista nenhum usuário logado
+                res.locals.user = req.user || null;
             next(); 
         });
 
@@ -60,7 +74,6 @@
         app.use(express.static(path.join(__dirname, "public")));
 
         app.use((req, res, next) => {
-            console.log("Oi, eu sou um Middleware!!");
             next();
         });
 
